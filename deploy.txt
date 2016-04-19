@@ -1,0 +1,71 @@
+** Deploy commands:
+[ "${REUSE_EXISTING_DB}" = "false" ] && REDEPLOY_ARGS="-D"
+[ "${INSTALL_FILENET}" = "true" ] && REDEPLOY_ARGS="${REDEPLOY_ARGS} -F"
+
+ssh lcuser@${TARGET_SERVER} "cd lc-update; git pull; bin/redeploy.sh ${REDEPLOY_ARGS} ${BUILD_LABEL}"
+
+*** Steps on redeploy.sh
+1.  functions.sh ( some functions check.. general methods ) and get-build.sh 
+
+** steps detail:========================================================
+bin/get-build.sh -B/b 
+unzip -o -q "/net/mlsa2/ibm/releng/workplace/dailybuilds/IC10.0_Connections/IC10.0_Connections_20150727-0240/repository/sn.live/fe.zip" -d "sn.live" 
+=======================================================================
+
+2.  stop WAS
+
+force Stop WAS =================================================
+pids=`ps -ef | grep java | grep "${WAS_HOME}/profiles/${WAS_PROFILE}" | awk '{print $2}'`
+
+[ -z "$pids" ] || kill -9 ${pids}
+================================================================
+
+3.  create-include populate_profiles/fixup DB
+	if [ -n "${flag_recreate_db}" ]; then
+    
+		recreate_all_databases
+	
+else
+    
+		auto_fixup_databases
+fi
+
+detail:==========================================
+Drop and recreate databases based on command line args --Populate Profiles databases -- backup DB
+if [ -n "${flag_recreate_db}" ]; then
+    
+	recreate_all_databases 
+	// sudo -u "$db_user" -i ${MY_HOME}/bin/create_db.sh -p ${MY_HOME}/xkit/connections.sql -d <component> 
+	// bin/populate_profiles.sh ${cfg_file}
+	// sudo -u "${db_user}" -i ${MY_HOME}/bin/${db_cmd} -b -C
+Fix databases based on command line args
+else
+    
+	auto_fixup_databases 
+	//sudo -u ${DB_USER} -i ${MY_HOME}/bin/fixup_db2.sh <component>
+fi
+====================================================
+
+4.  install
+	Start deploying build IC10.0_Connections_2016xxxx-xxxx
+	bin/lc-install.sh		
+
+		-J2EE Applications deploy
+
+5.  fileNet
+	
+		-Configure FileNet to work with Connections
+
+6.  reset http logs
+	remove the access_log of IHS
+
+7.  regenerate web server plugins
+	Regenerate web server plugins.
+
+
+=========================== pre deploy===============
+sudo yum install git-all
+git clone git@icautomation.swg.usma.ibm.com:/var/www/git/lc-update.git
+
+
+
