@@ -1,0 +1,243 @@
+Automation === on Linux
+
+0.  Before  you do anything:
+...after power down... for VM need run vmtool
+sudo su -
+cd /root
+./vmtool-cfg.sh
+---------------------
+
+1. System config --- Auto Start--------------------------------------------------------------
+
+1.1// db2 server auto start
+db2fm -?
+
+db2fm -s -S  //check
+db2fm -f on
+db2fm -a on
+db2fm -u
+db2fm -U
+
+ps -ef | grep db2inst1   // check db ps
+
+sudo su -db2inst1 -c db2start
+
+
+1.2//http server auto start  ---- apache
+sudo /sbin/chkconfig --help
+sudo /sbin/chkconfig --list httpd
+sudo /sbin/chkconfig httpd on
+
+
+manual start: 
+sudo /etc/init.d/httpd start
+===================================================
+IBM HTTP: 
+sudo /opt/IBM/IBMHttpServer/bin/apachectl start
+
+
+
+2. System config ---------security --------------------------------------------------------------
+//set key to avoid pwd
+cd /home/lcuser
+cd .ssh
+ssh-keygen
+cp id_rsa.pub authorized_keys
+
+//add sudo
+etc/sudoers - add
+
+//add: DHCP_HOSTNAME=<lc45ping>
+vi /etc/sysconfig/network-scripts/ifcfg-eth0
+
+//basic
+netstat -a -n | more
+service iptables status
+
+sudo mount -t cifs //mlsa1.swg.usma.ibm.com/workplace /mnt/mlsa1 -o username=piwang,domain=IRIS,uid=lcuser
+
+vi ifcfg-eth0
+/etc/sysconfig
+network-scripts
+
+ps-ef | grep dhcp
+
+//Http key
+$ bin/gskcmd -keydb -create -db keys/ihskey.kdb -pw bvtsecret -type cms -stash
+$ bin/gskcmd -cert -create -label default -dn "cn=icbvtlinux2.swg.usma.ibm.com,o=IBM,C=US" -default_cert yes -db keys/ihskey.kdb -pw bvtsecret -expire 3650 -size 2048
+
+keys/ihskey.kdb = key.kdb
+
+
+
+3. Jenkins ------cdci-------------------------------------------------------------------------
+
+iris\issi : 
+
+Test:
+connectionsci1 - icci/lcsecret
+jenksub? - icci/widget@1bm
+
+git status/pull
+git push git@icautomation.swg.usma.ibm.com:/var/www/git/lc-update.git
+
+
+git push -  will connect icautomation - git/autoSpr1ng13
+
+=============================jenkins git check in
+git add <file>
+git commit -m "message"
+git push
+
+git commit -m "message" file1git
+
+
+
+dashboard 
+root@icsub1  ->  git@icsub1
+
+
+4. Copy/Find/Replace ---------------------------------------------------------------------
+scp lcuser@lc45.swg.usma.ibm.com:/home/lcuser/Downloads/some.tar.gz some.tar.gz
+
+//replace files
+find /home/lcuser/lc-update/Test -name RE* -exec cp /home/lcuser/Test2/README.txt {} \;
+find /opt/IBM/WebSphere/AppServer/profiles/AppSrv01/installedApps/c14-32Node01Cell -name share.platform.jar -exec cp share.platform.jar {} \;
+find /opt/IBM/WebSphere/AppServer/ -name 'com.ibm.connections.directory.services.jar' -exec ls -la {} \;
+
+//copy WAS/DTI
+sudo rsync -avz --exclude profiles lcuser@lc45linux1:/opt/IBM/WebSphere/AppServer /opt/IBM/WebSphere
+sudo rsync -avz lcuser@lc45linux1:/opt/IBM/TDI /opt/IBM
+
+
+
+5. WAS profiles ------------------- ------------------------------------
+//cretae profile--- run setup  should done this and more--
+bin/manageprofiles.sh  -validateAndUpdateRegistry
+bin/manageprofiles.sh  -create -templatePath /opt/IBM/WebSphere/AppServer/profileTemplates/default -enableAdminSecurity true -adminUserName wasadmin -adminPassword lcsecret
+
+
+
+6. Connections ------deploy--------------------------------------------------------------
+
+//Set BVT system 
+1.Install WAS, IHS, Plugin  from IBMIM
+2. run lc-update/bin/setup.sh  ( if use diff ldap need  -l sun7 )
+( use cfg.py,  etc/server config file )
+
+git clone http://icautomation.swg.usma.ibm.com/git/lc-update.git
+
+
+//-command ---under lc-update----------
+//lc-update/bin.
+bin/was adm -f bin/pre-install.py
+bin/was adm -f bin/restart_app.py Wikis
+
+
+//deploy
+bin/get-build.sh -B LCI4.5
+
+//restart app
+bin/was adm -f bin/restart_app.py Wikis
+-----------------------------------------
+
+export BUILD_LOCATION=/mnt/mlsa1/dailybuilds
+//export WAS_HOME=/opt/IBM/WebSphere/AppServer
+//export WAS_PROFILE=AppSrv01
+
+tail -f /opt/IBM/WebSphere/AppServer/profiles/AppSrv01/logs/server1/SystemErr.log
+
+
+
+
+sudo su - db2inst1
+/local/home/lcuser/lc-update/bin/create_db.sh -d homepage
+
+Connections - cognos:
+SSL certificate and key management > Key stores and certificates > NodeDefaultTrustStore > Signer certificates
+from cognos console - add Connections server WAS-9443 and IHS-443
+
+
+7. BD set -------------------------------------------------------------------------------
+/opt/ibm/db2/V10.1/adm/db2licm -a db2ese_c.lic
+
+[db2inst1@lc45ping ~]$ ln -s ~lcuser/lc-update/bin/create_db.sh
+
+//remote call
+ssh db2inst1@linux276.rtp.raleigh.ibm.com /home/lcuser/lc-update/bin/create_db.sh -d blogs
+
+
+
+///patch db2/oracle:
+db2 -t -vf connections.sql/communities/oracle/calendar-fixup15.sql
+sqlplus -L / AS SYSDBA @connections.sql/communities/oracle/calendar-fixup15.sql
+
+
+//db sql grand check with lcuser:
+[lcuser@lc45linux1 ~]$ . ~db2inst1/sqllib/db2profile
+[lcuser@lc45linux1 ~]$ db2 connect to homepage
+
+   Database Connection Information
+
+ Database server        = DB2/LINUXX8664 10.1.1
+ SQL authorization ID   = LCUSER
+ Local database alias   = HOMEPAGE
+
+[lcuser@lc45linux1 ~]$ db2 "select * from HOMEPAGE.SR_ALLTASKSDEF"
+SQL0551N  "LCUSER" does not have the required authorization or privilege to 
+perform operation "SELECT" on object "HOMEPAGE.SR_ALLTASKSDEF".  
+SQLSTATE=42501
+
+//from db2inst1
+[db2inst1@lc45linux1 ~]$ vi connections.sql/homepage/db2/appGrants.sql 
+[db2inst1@lc45linux1 ~]$ db2 -tvf connections.sql/homepage/db2/appGrants.sql 
+
+//db2 command sample..
+db2 list db directory
+db2 get dbm cfg
+db2 update dbm cfg using svcename db2c_lcuser
+db2 set DB2COMM=tcpip
+
+select DISPLAYNAME, EXID from homepage.person where ORGANIZATION_ID = 'a'
+select * from homepage.person where displayname = 'amy jones6'
+select DISPLAYNAME, EXID, LAST_UPDATE from homepage.person where ORGANIZATION_ID = 'a'
+
+oracle with";" in end, such as:
+select DISPLAYNAME, EXID, LAST_UPDATE from homepage.person where ORGANIZATION_ID = 'a';
+
+========= clean up DB ===============================================================================
+db2 drop db forum
+db2 uncatalog db forum
+/home/lcuser/lc-update/bin/create_db.sh -d forum
+
+=================
+// if copied from other system,  need to modify  db2inst1/sqllib/db2nodes.cfg -- host name
+rm -rf db2inst1     // delete all db files under db2inst1/NODE0000
+
+
+
+====Debug============================================================================================
+//debug highway
+
+cd /opt/IBM/Connections/data/configuration/
+rm -rf *
+cp -r ~/lc-update/xkit/configuration/update .
+
+===search string in files=========
+grep -rnw '/path/to/somewhere/' -e "pattern"
+
+    -r or -R is recursive,
+    -n is line number, and
+    -w stands match the whole word.
+    -l (lower-case L) can be added to just give the file name of matching files.
+    Along with these, --exclude or --include parameter could be used for efficient searching. Something like below:
+
+grep --include=\*.{c,h} -rnw '/path/to/somewhere/' -e "pattern"
+
+This will only search through the files which have .c or .h extensions. Similarly a sample use of --exclude:
+
+grep --exclude=*.o -rnw '/path/to/somewhere/' -e "pattern"
+
+==Fine Java Path===========
+which java
+for %i in (java.exe) do @echo.   %~$PATH:i     //for windows
