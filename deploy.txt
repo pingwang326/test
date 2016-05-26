@@ -39,6 +39,32 @@ ssh lcuser@${TARGET_SERVER} "cd lc-update; git pull; bin/redeploy.sh ${REDEPLOY_
 7.  regenerate web server plugins
 	
 
+=========================================================
+Connections deploy
+
+1. lc-install.sh
+MYSELF=/home/lcuser/lc-update/bin/lc-install.sh
+MY_BIN_DIR=/home/lcuser/lc-update/bin
+MY_HOME=/home/lcuser/lc-update
+LOG_FILE=/home/lcuser/lc-update/install.log
+
+${WAS_PROFILE_HOME}/bin/wsadmin -lang jython ${CONN_OPTIONS} \
+    -javaoption "-Xmx512m" \
+    -wsadmin_classpath "${MY_HOME}/lib/lccfg.jar" \
+    -f "${MY_HOME}/bin/install.py" ${INSTALL_OPTIONS} "${MY_HOME}/cfg.py" \
+    "${MY_HOME}/xkit" 2>&1
+    
+${INSTALL_OPTIONS} -> [-uninstall|-update]  default action install
+
+2. install.py
+  from lcutils import *
+  from connections import Connections
+
+    c = Connections(xkit, cfg_file)
+    func = getattr(c, action)
+    func()
+    
+3. connections.py
 
 =========================== pre deploy===============
 sudo yum install git-all
