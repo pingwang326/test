@@ -1,4 +1,37 @@
-Automation -- on Linux VM
+Connections Automation -- on Linux VM
+1. require a VM
+	basic setting ( with root): 
+		useradd lcuser
+		passwd lcuser 
+		vi /etc/sudoers //- add lcuser 
+		(lcuser  ALL=(ALL) NOPASSWD: ALL)
+
+2. install WAS HTTP Pliugin with IBMIM (with lcuser)
+	download IBMIM : http://www-01.ibm.com/support/docview.wss?uid=swg24041188
+	https://www-945.ibm.com/support/fixcentral/swg/downloadFixes?parent=ibm~Rational&product=ibm/Rational/IBM+Installation+Manager&release=1.8.5.0&platform=Linux&function=fixId&fixids=1.8.5.0-IBMIM-LINUX-X86_64-20160506_1125&useReleaseAsTarget=true&includeRequisites=1&includeSupersedes=0&downloadMethod=http
+	http://www.ibm.com/software/repositorymanager/com.ibm.websphere.ND.v85
+	http://www.ibm.com/software/repositorymanager/com.ibm.websphere.IHS.v85
+	http://www.ibm.com/software/repositorymanager/com.ibm.websphere.PLG.v85
+	/home/lcusers
+
+3. install DB2
+	http://dcon.com.br/db2-cli-install/
+	https://bernhard.hensler.net/ibm-db2-install-uninstall-update/
+	
+4. install TDI
+	use default setting
+	
+5. clone lc-installer 
+	git clone git@icautomation.swg.usma.ibm.com:/var/www/git/lc-update.git
+	
+6. Profiles LDAP setup
+	lc-update>bin/setup.sh -R
+
+7. Delpoy	
+	bin/redeploy.sh -D -F IC10.0_Connections
+	Prereq: net connect to shared build - in binary group; start DB
+	
+8. 
 
 === VM tool
 ...after power down... for VM need run vmtool
@@ -117,18 +150,11 @@ for %i in (java.exe) do @echo.   %~$PATH:i     //for windows
 === WebSphere----
 //cretae profile--- run setup  should done this and more--
 bin/manageprofiles.sh  -validateAndUpdateRegistry
-bin/manageprofiles.sh  -create -templatePath /opt/IBM/WebSphere/AppServer/profileTemplates/default -enableAdminSecurity true -adminUserName wasadmin -adminPassword lcsecret
+bin/manageprofiles.sh  -create -templatePath /opt/IBM/WebSphere/AppServer/profileTemplates/default -enableAdminSecurity true -adminUserName wasadmin -adminPassword bvtsecret
 
 
 
 === Connections -- BVT system--deploy--
-
-//Set BVT system 
-1.Install WAS, IHS, Plugin  from IBMIM
-2. run lc-update/bin/setup.sh  ( if use diff ldap need  -l sun7 )
-( use cfg.py,  etc/server config file )
-
-git clone http://icautomation.swg.usma.ibm.com/git/lc-update.git
 
 
 //-command ---under lc-update----------
