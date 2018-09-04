@@ -1,1 +1,4 @@
 https://daymvs1.pok.ibm.com/ibmca-wireless/view/manualSetup.do
+
+openssl aes-256-cbc -salt -a -e -in reference/90Days -out reference/e-90Days
+openssl aes-256-cbc -salt -a -d -in reference/e-90Days -out reference/d-90Days
