@@ -7,7 +7,7 @@ FMT="%Y-%m-%d %H:%M:%S"
 NOW=$( date +"${FMT}" )
 cd $DIR
 
-. $(dirname $0)/util.sh
+. ./util.sh
 
 openssl aes-256-cbc -salt -a -e -in reference/d-90Days -out reference/e-90Days -k $pwd
 openssl aes-256-cbc -salt -a -d -in reference/e-90Days -out reference/d-90Days -k $pwd
