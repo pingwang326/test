@@ -5,11 +5,10 @@ FQDN=`hostname -f`
 DIR=`dirname $0`
 FMT="%Y-%m-%d %H:%M:%S"
 NOW=$( date +"${FMT}" )
-
-cd
-pwd=$(cat key/.test)
-
 cd $DIR
+
+. $(dirname $0)/util.sh
+
 openssl aes-256-cbc -salt -a -e -in reference/d-90Days -out reference/e-90Days -k $pwd
 openssl aes-256-cbc -salt -a -d -in reference/e-90Days -out reference/d-90Days -k $pwd
 
