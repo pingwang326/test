@@ -1,9 +1,11 @@
 Connections Automation -- on Linux VM
+Install repository: http://yguobsd.swg.usma.ibm.com/software/
+
 1. require a VM
-	basic setting ( with root): 
+	basic setting ( with root):
 		useradd lcuser
 		passwd lcuser   ---- bvtsecret
-		vi /etc/sudoers //- add lcuser 
+		vi /etc/sudoers //- add lcuser
 		(lcuser  ALL=(ALL) NOPASSWD: ALL)
 
 2. install WAS HTTP Pliugin with IBMIM (with lcuser)
@@ -18,18 +20,81 @@ Connections Automation -- on Linux VM
 3. install DB2
 	http://dcon.com.br/db2-cli-install/
 	https://bernhard.hensler.net/ibm-db2-install-uninstall-update/
-	
+
 4. install TDI
 	use default setting
-	
-5. clone lc-installer 
+
+5. clone lc-installer
 	git clone git@icautomation.swg.usma.ibm.com:/var/www/git/lc-update.git
 	git clone http://icautomation.swg.usma.ibm.com/git/lc-update.git
-	
+
 6. Profiles LDAP setup
 	lc-update>bin/setup.sh -R    ( generate cfg.py,  etc/server config file )
 	bin/setup.sh -R -S bvtsecret -d bvtsecret -s -B IC10.0_Connections
 
 
-7. Delpoy	
+7. Delpoy
 	bin/redeploy.sh -D -F IC10.0_Connections
+
+* Prereq: net connect to shared build - in binary group; start DB
+	WAS will crash soon if not add files number - Too many open files @/etc/security/limits.conf
+
+	download FN install files -
+	sudo rsync -avz lcuser@icbvtlinux12:/home/lcuser/FileNetInstall /home/lcuser
+	update cfg.py
+	bin/redeploy.sh -D -F IC10.0_Connections
+
+	*FileNet ( first install workaround ):
+		bin/fn-install-apps.sh
+		//bin/fn-configure.sh -host localhost
+				bin/was adm -f bin/restart_app.py FileNetEngine navigator
+				bin/fn-configure.sh -host localhost
+
+	set post-install.sh under lc-update
+	OS authentication
+
+	8. install Oracle
+		solve all prereq
+		https://www.linux.com/learn/increase-your-available-swap-space-swap-file
+		dbcs without pdb?
+
+		/home/lcuser/oracle_jdbc/ojdbc7.jar
+		.bashrc
+
+		ojdbc6.jar must be add into TDI install location ../3rdParty/others
+
+		cleanup:
+		kill -9 `ps -ef | grep oracle | grep -v grep | awk '{print $2}'`
+
+		//oracle..
+		~lcuser/lc-update/bin/create_db_o.sh -l sys/bvtsecret@localhost:1521/lsconn
+
+		$ . /usr/local/bin/oraenv
+	  	ORACLE_SID = [lsconn] ?
+	  	ORACLE_HOME = [/local/oracle] ? /home/oracle/app/oracle/product/12.1.0/dbhome_1
+	  	The Oracle base for ORACLE_HOME=/home/oracle/app/oracle/product/12.1.0/dbhome_1 is /home/oracle/app/oracle
+
+	===========================================================
+	Start the listner: $ lsnrctl start
+
+	Use SQL*Plus to start/stop the DB
+
+	$ sqlplus /nolog
+	SQL> CONNECT SYS AS SYSDBA
+	Enter password: password
+	SQL> STARTUP
+
+	To stop:  SQL> SHUTDOWN
+
+	==Oracle=OS authentication
+	SQL>CREATE USER ops$oracle IDENTIFIED EXTERNALLY;
+	SQL>GRANT CREATE SESSION TO ops$oracle;
+
+	9. other
+		ln -s /opt/IBM/WebSphere/AppServer/profiles/AppSrv01/logs /opt/IBM/HTTPServer/htdocs/was-logs
+		ln -s /opt/IBM/WebSphere/AppServer/profiles/AppSrv01/FileNet/ /opt/IBM/HTTPServer/htdocs/filenet
+		ln -s ~lcuser/lc-update/xkit/connections.sql
+	
+	==Auto Start BD2==
+	<instanceHomw>/sqllib/profile.env
+	DB2AUTOATART='YES'
